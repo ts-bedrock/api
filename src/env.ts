@@ -1,7 +1,5 @@
 import * as JD from "decoders"
-import { fromDecodeResult, isRight } from "../core/data/Either"
-
-export default load()
+import { fromDecodeResult } from "../../core/data/Either"
 
 export type Env = {
   APP_ENV: "test" | "development" | "production"
@@ -11,6 +9,7 @@ export type Env = {
   DB_USER: string
   DB_PASSWORD: string
   DB_DATABASE: string
+  DB_MAX_POOL: number
 }
 
 const decoder: JD.Decoder<Env> = JD.object({
@@ -21,6 +20,7 @@ const decoder: JD.Decoder<Env> = JD.object({
   DB_USER: JD.string,
   DB_PASSWORD: JD.string,
   DB_DATABASE: JD.string,
+  DB_MAX_POOL: JD.string.transform(toNumber),
 })
 
 // Private
@@ -30,16 +30,17 @@ const decoder: JD.Decoder<Env> = JD.object({
 function load(): Env | never {
   const env = {
     APP_ENV: process.env.APP_ENV,
-    APP_PORT: process.env.PORT,
+    APP_PORT: process.env.APP_PORT,
     DB_HOST: process.env.DB_HOST,
     DB_PORT: process.env.DB_PORT,
     DB_USER: process.env.DB_USER,
     DB_PASSWORD: process.env.DB_PASSWORD,
     DB_DATABASE: process.env.DB_DATABASE,
+    DB_MAX_POOL: process.env.DB_MAX_POOL,
   }
 
   const result = fromDecodeResult(decoder.decode(env))
-  if (isRight(result)) {
+  if (result._t === "Right") {
     return result.value
   } else {
     console.error("Env is malformed.")
@@ -55,3 +56,5 @@ function toNumber(s: string): number | never {
     return n
   }
 }
+
+export default load()

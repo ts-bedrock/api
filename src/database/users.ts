@@ -1,58 +1,78 @@
-import { Either, left, right } from "../../core/data/Either"
+import { PositiveInt, positiveIntDecoder } from "../../../core/data/PositiveInt"
+import { Either, left, right } from "../../../core/data/Either"
+import { fromMaybe } from "../../../core/data/Maybe"
 import db from "../database"
 import * as JD from "decoders"
+import { Text100, text100Decoder } from "../../../core/data/Text/Text100"
+import { Email, emailDecoder } from "../../../core/data/user/Email"
+import {
+  Timestamp,
+  createTimestamp,
+  timestampDecoder,
+} from "../../../core/data/Timestamp"
+import { Generated } from "kysely"
 
-export type UserRow = {
-  id: number
+export const tableName = "user"
+
+export type UserTable = {
+  id: Generated<number>
   name: string
   email: string
   createdAt: number
   updatedAt: number
 }
 
+export type UserRow = {
+  id: PositiveInt
+  name: Text100
+  email: Email
+  createdAt: Timestamp
+  updatedAt: Timestamp
+}
+
 export type AuthUser = UserRow
 
 export type CreateParams = {
-  name: string
-  email: string
+  name: Text100
+  email: Email
 }
-export type CreateErrorCode = "EMPTY_NAME" | "EMPTY_EMAIL" | "UNKNOWN_DB_ERROR"
+export type CreateErrorCode = "EMPTY_NAME" | "DATA_ERROR" | "UNKNOWN_DB_ERROR"
 export async function create(
   params: CreateParams,
 ): Promise<Either<CreateErrorCode, UserRow>> {
   const { name, email } = params
-  if (name.length === 0) {
+  if (name.unwrap().length === 0) {
     return left("EMPTY_NAME")
   }
-  if (email.length === 0) {
-    return left("EMPTY_EMAIL")
-  }
 
-  const now = Date.now()
+  const now = fromMaybe(createTimestamp(Date.now()))
+  if (now == null) return left("DATA_ERROR")
 
   return db
-    .insert({
-      name,
-      email,
-      createdAt: now,
-      updatedAt: now,
+    .insertInto(tableName)
+    .values({
+      name: name.unwrap(),
+      email: email.unwrap(),
+      createdAt: now.unwrap(),
+      updatedAt: now.unwrap(),
     })
-    .returning("*")
-    .then((rows) => rows[0])
+    .returningAll()
+    .executeTakeFirstOrThrow()
     .then(userRowDecoder.verify)
-    .then(right<CreateErrorCode, UserRow>)
+    .then(right)
     .catch((e) => {
       console.error("#users.create error", e)
       return left("UNKNOWN_DB_ERROR")
     })
 }
 
-export async function getByID(userID: UserRow["id"]): Promise<UserRow | null> {
+export async function getByID(userID: PositiveInt): Promise<UserRow | null> {
   return db
-    .select()
-    .where({ id: userID })
-    .then((rows) => rows[0])
-    .then((row) => (row == null ? null : userRowDecoder.verify(row)))
+    .selectFrom(tableName)
+    .selectAll()
+    .where("user.id", "==", userID.unwrap())
+    .executeTakeFirstOrThrow()
+    .then(userRowDecoder.verify)
     .catch((e) => {
       console.error("#users.getByID error", e)
       return null
@@ -60,9 +80,9 @@ export async function getByID(userID: UserRow["id"]): Promise<UserRow | null> {
 }
 
 const userRowDecoder: JD.Decoder<UserRow> = JD.object({
-  id: JD.number,
-  name: JD.string,
-  email: JD.string,
-  createdAt: JD.number,
-  updatedAt: JD.number,
+  id: positiveIntDecoder,
+  name: text100Decoder,
+  email: emailDecoder,
+  createdAt: timestampDecoder,
+  updatedAt: timestampDecoder,
 })

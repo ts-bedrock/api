@@ -1,5 +1,5 @@
-import * as API from "../../core/api/GetUser"
-import { Either, left, right } from "../../core/data/Either"
+import * as API from "../../../core/api/GetUser"
+import { Either, left, right } from "../../../core/data/Either"
 import * as UserDb from "../database/users"
 
 export default async function handler(

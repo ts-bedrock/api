@@ -4,16 +4,22 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "sync:submodule": "git submodule update --init --recursive --remote",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "lint:watch": "esw ./ --ext .ts --watch",
+    "tsc:watch": "tsc --watch",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "db:start": "bash ./devops/dev/db-start.sh",
+    "db:migrate": "bash ./devops/dev/db-migrate.sh",
+    "db:migrate:create": "bash ./devops/dev/db-migrate-create.sh"
   },
   "author": "Haniker",
   "license": "ISC",
   "dependencies": {
     "decoders": "^2.4.0",
-    "knex": "^3.1.0"
+    "kysely": "^0.27.3",
+    "pg": "^8.11.5"
   },
   "devDependencies": {
+    "@types/pg": "^8.11.6",
     "@typescript-eslint/eslint-plugin": "^5.61.0",
     "@typescript-eslint/parser": "^5.61.0",
     "eslint": "^8.44.0",
