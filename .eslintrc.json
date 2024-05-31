@@ -9,7 +9,7 @@
     "plugin:@typescript-eslint/recommended",
     "prettier"
   ],
-  "plugins": ["@typescript-eslint", "prettier", "boundaries"],
+  "plugins": ["@typescript-eslint", "prettier", "boundaries", "custom"],
   "rules": {
     "import/no-cycle": "error",
     "@typescript-eslint/no-explicit-any": "error",
@@ -21,6 +21,8 @@
         "varsIgnorePattern": "^_",
         "caughtErrorsIgnorePattern": "^_"
       }
-    ]
+    ],
+    "custom/no-as": "error",
+    "custom/no-is": "error"
   }
 }

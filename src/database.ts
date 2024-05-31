@@ -1,7 +1,7 @@
 import { Pool } from "pg"
 import { Kysely, PostgresDialect } from "kysely"
 import ENV from "./env"
-import type { UserTable } from "./database/users"
+import type { UserTable } from "./database/user"
 
 type Schema = {
   user: UserTable

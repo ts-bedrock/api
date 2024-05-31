@@ -10,6 +10,7 @@ export type Env = {
   DB_PASSWORD: string
   DB_DATABASE: string
   DB_MAX_POOL: number
+  JWT_SECRET: string
 }
 
 const decoder: JD.Decoder<Env> = JD.object({
@@ -21,6 +22,7 @@ const decoder: JD.Decoder<Env> = JD.object({
   DB_PASSWORD: JD.string,
   DB_DATABASE: JD.string,
   DB_MAX_POOL: JD.string.transform(toNumber),
+  JWT_SECRET: JD.string,
 })
 
 // Private
@@ -37,6 +39,7 @@ function load(): Env | never {
     DB_PASSWORD: process.env.DB_PASSWORD,
     DB_DATABASE: process.env.DB_DATABASE,
     DB_MAX_POOL: process.env.DB_MAX_POOL,
+    JWT_SECRET: process.env.JWT_SECRET,
   }
 
   const result = fromDecodeResult(decoder.decode(env))

@@ -18,14 +18,14 @@ migrator
   .then(({ results, error }) => {
     if (error != null) throw error
     if (results == null) {
-      console.log("Migration completed: Nothing to run")
+      console.info("Migration completed: Nothing to run")
       return
     }
 
     results.forEach((r) => {
       switch (r.status) {
         case "Success":
-          console.log(
+          console.info(
             `Migration "${r.migrationName}" was executed successfully`,
           )
           break
@@ -37,7 +37,7 @@ migrator
           break
 
         case "NotExecuted":
-          console.info(`Migration "${r.migrationName}" was not executed`)
+          console.warn(`Migration "${r.migrationName}" was not executed`)
           break
       }
     })
