@@ -8,14 +8,11 @@ import {
 } from "../../../core/data/Either"
 import { UserRow } from "../database/user"
 import {
-  GetApi,
-  DeleteApi,
-  PostApi,
-  PutApi,
-  PatchApi,
   UrlRecord,
   ResponseJson,
   AuthResponseJson,
+  PublicApi,
+  AuthApi,
 } from "../../../core/data/Api"
 import { err400, internalErr500, ok200, unauthorised } from "./response"
 import * as Jwt from "./jwt"
@@ -45,12 +42,7 @@ export function publicApi<
   Payload,
 >(
   app: Express.Express,
-  contract:
-    | GetApi<Route, UrlParams, ErrorCode, Payload>
-    | DeleteApi<Route, UrlParams, ErrorCode, Payload>
-    | PostApi<Route, UrlParams, RequestBody, ErrorCode, Payload>
-    | PatchApi<Route, UrlParams, RequestBody, ErrorCode, Payload>
-    | PutApi<Route, UrlParams, RequestBody, ErrorCode, Payload>,
+  contract: PublicApi<Route, UrlParams, RequestBody, ErrorCode, Payload>,
   handler: PublicHandler<UrlParams & RequestBody, ErrorCode, Payload>,
 ): void {
   const { method, route, urlDecoder, bodyDecoder } = contract
@@ -86,12 +78,7 @@ export function authApi<
   Payload,
 >(
   app: Express.Express,
-  contract:
-    | GetApi<Route, UrlParams, ErrorCode, Payload>
-    | DeleteApi<Route, UrlParams, ErrorCode, Payload>
-    | PostApi<Route, UrlParams, RequestBody, ErrorCode, Payload>
-    | PatchApi<Route, UrlParams, RequestBody, ErrorCode, Payload>
-    | PutApi<Route, UrlParams, RequestBody, ErrorCode, Payload>,
+  contract: AuthApi<Route, UrlParams, RequestBody, ErrorCode, Payload>,
   handler: AuthHandler<UrlParams & RequestBody, ErrorCode, Payload>,
 ): void {
   const { method, route, urlDecoder, bodyDecoder } = contract

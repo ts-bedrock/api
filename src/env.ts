@@ -1,5 +1,6 @@
 import * as JD from "decoders"
 import { fromDecodeResult } from "../../core/data/Either"
+import { stringNumberDecoder } from "../../core/data/Decoder"
 
 export type Env = {
   APP_ENV: "test" | "development" | "production"
@@ -15,13 +16,13 @@ export type Env = {
 
 const decoder: JD.Decoder<Env> = JD.object({
   APP_ENV: JD.oneOf(["test", "development", "production"]),
-  APP_PORT: JD.string.transform(toNumber),
+  APP_PORT: stringNumberDecoder,
   DB_HOST: JD.string,
-  DB_PORT: JD.string.transform(toNumber),
+  DB_PORT: stringNumberDecoder,
   DB_USER: JD.string,
   DB_PASSWORD: JD.string,
   DB_DATABASE: JD.string,
-  DB_MAX_POOL: JD.string.transform(toNumber),
+  DB_MAX_POOL: stringNumberDecoder,
   JWT_SECRET: JD.string,
 })
 
@@ -48,15 +49,6 @@ function load(): Env | never {
   } else {
     console.error("Env is malformed.")
     throw new Error(JD.formatInline(result.error))
-  }
-}
-
-function toNumber(s: string): number | never {
-  const n = parseInt(s, 10)
-  if (isNaN(n)) {
-    throw new Error(`${s} is not an integer.`)
-  } else {
-    return n
   }
 }
 

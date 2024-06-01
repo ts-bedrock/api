@@ -2,7 +2,7 @@
 set -e
 
 docker-compose \
-  --project-name papa\
+  --project-name ts-bedrock\
   --file ./devops/dev/docker-compose.yml \
   --project-directory . \
   up \
