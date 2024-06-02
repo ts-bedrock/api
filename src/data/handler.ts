@@ -17,6 +17,7 @@ import {
 import { err400, internalErr500, ok200, unauthorised } from "./response"
 import * as Jwt from "./jwt"
 import * as UserDb from "../database/user"
+import { Annotation } from "../../../core/data/Decoder"
 
 /** Handler type is a "pure" function that takes any P as params
  * and returns a Promise that resolves to Either<E, T>
@@ -195,7 +196,7 @@ function decodeParams<UrlParams, RequestBody>(
   req: Express.Request,
   urlDecoder: JD.Decoder<UrlParams>,
   bodyDecoder: JD.Decoder<RequestBody>,
-): Either<unknown, UrlParams & RequestBody> {
+): Either<Annotation, UrlParams & RequestBody> {
   // Decoder errors are treated as 500 internal errors
   // Because our typescript should guarantee this
   // and it should not happen in production
@@ -246,8 +247,12 @@ function catchCallback(
   }
 }
 
-function decoderErrorMessage<P>(params: P, error: unknown): string {
-  return internalErrMessage("Params Decoder Failed", params, error)
+function decoderErrorMessage<P>(params: P, error: Annotation): string {
+  return internalErrMessage(
+    "Params Decoder Failed",
+    params,
+    JD.formatInline(error),
+  )
 }
 
 function internalErrMessage<E, P>(title: string, params: P, error: E): string {

@@ -17,8 +17,9 @@
     "strictNullChecks": true
   },
   "include": [
-    "src/**/*",
     "core/**/*",
+    "src/**/*",
+    "spec/**/*"
   ],
   "exclude": ["node_modules"]
 }
