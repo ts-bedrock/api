@@ -4,7 +4,7 @@ import * as Login from "../../core/api/Login"
 import login from "./handler/login"
 import * as GetUsers from "../../core/api/GetUsers"
 import getUsers from "./handler/getUsers"
-import { authApi, publicApi } from "./data/handler"
+import { authGetApi, publicPostApi } from "./data/handler"
 
 const app = express()
 app.use(cors())
@@ -13,7 +13,7 @@ app.use(cors())
 // Recommended by ExpressJS
 app.use(json({ limit: "100kb", type: "application/json" }))
 
-publicApi(app, Login.contract, login)
-authApi(app, GetUsers.contract, getUsers)
+publicPostApi(app, Login.contract, login)
+authGetApi(app, GetUsers.contract, getUsers)
 
 export default app

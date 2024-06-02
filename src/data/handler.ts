@@ -12,12 +12,159 @@ import {
   ResponseJson,
   AuthResponseJson,
   PublicApi,
+  PublicNoneBodyApi,
   AuthApi,
+  AuthNoneBodyApi,
+  GetApi,
+  DeleteApi,
+  PostApi,
+  PatchApi,
+  PutApi,
 } from "../../../core/data/Api"
 import { err400, internalErr500, ok200, unauthorised } from "./response"
 import * as Jwt from "./jwt"
 import * as UserDb from "../database/user"
 import { Annotation } from "../../../core/data/Decoder"
+
+export type AuthUser = UserRow
+
+export function publicGetApi<
+  Route extends string,
+  UrlParams extends UrlRecord<Route>,
+  ErrorCode,
+  Payload,
+>(
+  app: Express.Express,
+  contract: GetApi<Route, UrlParams, ErrorCode, Payload>,
+  handler: PublicHandler<UrlParams, ErrorCode, Payload>,
+): void {
+  return publicNoneBodyApi(app, contract, handler)
+}
+
+export function publicDeleteApi<
+  Route extends string,
+  UrlParams extends UrlRecord<Route>,
+  ErrorCode,
+  Payload,
+>(
+  app: Express.Express,
+  contract: DeleteApi<Route, UrlParams, ErrorCode, Payload>,
+  handler: PublicHandler<UrlParams, ErrorCode, Payload>,
+): void {
+  return publicNoneBodyApi(app, contract, handler)
+}
+
+export function publicPostApi<
+  Route extends string,
+  UrlParams extends UrlRecord<Route>,
+  RequestBody,
+  ErrorCode,
+  Payload,
+>(
+  app: Express.Express,
+  contract: PostApi<Route, UrlParams, RequestBody, ErrorCode, Payload>,
+  handler: PublicHandler<UrlParams & RequestBody, ErrorCode, Payload>,
+): void {
+  return publicApi(app, contract, handler)
+}
+
+export function publicPutApi<
+  Route extends string,
+  UrlParams extends UrlRecord<Route>,
+  RequestBody,
+  ErrorCode,
+  Payload,
+>(
+  app: Express.Express,
+  contract: PutApi<Route, UrlParams, RequestBody, ErrorCode, Payload>,
+  handler: PublicHandler<UrlParams & RequestBody, ErrorCode, Payload>,
+): void {
+  return publicApi(app, contract, handler)
+}
+
+export function publicPatchApi<
+  Route extends string,
+  UrlParams extends UrlRecord<Route>,
+  RequestBody,
+  ErrorCode,
+  Payload,
+>(
+  app: Express.Express,
+  contract: PatchApi<Route, UrlParams, RequestBody, ErrorCode, Payload>,
+  handler: PublicHandler<UrlParams & RequestBody, ErrorCode, Payload>,
+): void {
+  return publicApi(app, contract, handler)
+}
+
+export function authGetApi<
+  Route extends string,
+  UrlParams extends UrlRecord<Route>,
+  ErrorCode,
+  Payload,
+>(
+  app: Express.Express,
+  contract: GetApi<Route, UrlParams, ErrorCode, Payload>,
+  handler: AuthHandler<UrlParams, ErrorCode, Payload>,
+): void {
+  return authNoneBodyApi(app, contract, handler)
+}
+
+export function authDeleteApi<
+  Route extends string,
+  UrlParams extends UrlRecord<Route>,
+  ErrorCode,
+  Payload,
+>(
+  app: Express.Express,
+  contract: DeleteApi<Route, UrlParams, ErrorCode, Payload>,
+  handler: AuthHandler<UrlParams, ErrorCode, Payload>,
+): void {
+  return authNoneBodyApi(app, contract, handler)
+}
+
+export function authPostApi<
+  Route extends string,
+  UrlParams extends UrlRecord<Route>,
+  RequestBody,
+  ErrorCode,
+  Payload,
+>(
+  app: Express.Express,
+  contract: PostApi<Route, UrlParams, RequestBody, ErrorCode, Payload>,
+  handler: AuthHandler<UrlParams & RequestBody, ErrorCode, Payload>,
+): void {
+  return authApi(app, contract, handler)
+}
+
+export function authPutApi<
+  Route extends string,
+  UrlParams extends UrlRecord<Route>,
+  RequestBody,
+  ErrorCode,
+  Payload,
+>(
+  app: Express.Express,
+  contract: PutApi<Route, UrlParams, RequestBody, ErrorCode, Payload>,
+  handler: AuthHandler<UrlParams & RequestBody, ErrorCode, Payload>,
+): void {
+  return authApi(app, contract, handler)
+}
+
+export function authPatchApi<
+  Route extends string,
+  UrlParams extends UrlRecord<Route>,
+  RequestBody,
+  ErrorCode,
+  Payload,
+>(
+  app: Express.Express,
+  contract: PatchApi<Route, UrlParams, RequestBody, ErrorCode, Payload>,
+  handler: AuthHandler<UrlParams & RequestBody, ErrorCode, Payload>,
+): void {
+  return authApi(app, contract, handler)
+}
+
+// Internal
 
 /** Handler type is a "pure" function that takes any P as params
  * and returns a Promise that resolves to Either<E, T>
@@ -32,10 +179,8 @@ export type AuthHandler<P, E, T> = (
   params: P,
 ) => Promise<Either<E, T>>
 
-export type AuthUser = UserRow
-
 /** Creates a public API endpoint */
-export function publicApi<
+function publicApi<
   Route extends string,
   UrlParams extends UrlRecord<Route>,
   RequestBody,
@@ -52,9 +197,6 @@ export function publicApi<
   })
 
   switch (method) {
-    case "GET":
-      app.get(removeQuery(route), handlerRunner)
-      break
     case "POST":
       app.post(removeQuery(route), handlerRunner)
       break
@@ -64,6 +206,28 @@ export function publicApi<
     case "PUT":
       app.put(removeQuery(route), handlerRunner)
       break
+  }
+}
+
+function publicNoneBodyApi<
+  Route extends string,
+  UrlParams extends UrlRecord<Route>,
+  ErrorCode,
+  Payload,
+>(
+  app: Express.Express,
+  contract: PublicNoneBodyApi<Route, UrlParams, ErrorCode, Payload>,
+  handler: PublicHandler<UrlParams, ErrorCode, Payload>,
+): void {
+  const { method, route, urlDecoder } = contract
+  const handlerRunner = catchCallback((req, res) => {
+    return runPublicNoneBodyHandler(urlDecoder, handler, req, res)
+  })
+
+  switch (method) {
+    case "GET":
+      app.get(removeQuery(route), handlerRunner)
+      break
     case "DELETE":
       app.delete(removeQuery(route), handlerRunner)
       break
@@ -71,7 +235,7 @@ export function publicApi<
 }
 
 /** Creates a auth API endpoint */
-export function authApi<
+function authApi<
   Route extends string,
   UrlParams extends UrlRecord<Route>,
   RequestBody,
@@ -88,9 +252,6 @@ export function authApi<
   })
 
   switch (method) {
-    case "GET":
-      app.get(removeQuery(route), handlerRunner)
-      break
     case "POST":
       app.post(removeQuery(route), handlerRunner)
       break
@@ -100,13 +261,33 @@ export function authApi<
     case "PUT":
       app.put(removeQuery(route), handlerRunner)
       break
+  }
+}
+
+function authNoneBodyApi<
+  Route extends string,
+  UrlParams extends UrlRecord<Route>,
+  ErrorCode,
+  Payload,
+>(
+  app: Express.Express,
+  contract: AuthNoneBodyApi<Route, UrlParams, ErrorCode, Payload>,
+  handler: AuthHandler<UrlParams, ErrorCode, Payload>,
+): void {
+  const { method, route, urlDecoder } = contract
+  const handlerRunner = catchCallback((req, res) => {
+    return runAuthNoneBodyHandler(urlDecoder, handler, req, res)
+  })
+
+  switch (method) {
+    case "GET":
+      app.get(removeQuery(route), handlerRunner)
+      break
     case "DELETE":
       app.delete(removeQuery(route), handlerRunner)
       break
   }
 }
-
-// Internal
 
 async function runPublicHandler<UrlParams, RequestBody, ErrorCode, Payload>(
   urlDecoder: JD.Decoder<UrlParams>,
@@ -115,27 +296,40 @@ async function runPublicHandler<UrlParams, RequestBody, ErrorCode, Payload>(
   req: Express.Request,
   res: Express.Response<ResponseJson<ErrorCode, Payload>>,
 ): Promise<void> {
-  // Decoder errors are treated as 500 internal errors
-  // Because our typescript should guarantee this
-  // and it should not happen in production
   const paramsResult = decodeParams(req, urlDecoder, bodyDecoder)
+  return runPublicHandler_(paramsResult, handler, req, res)
+}
+
+async function runPublicNoneBodyHandler<UrlParams, ErrorCode, Payload>(
+  urlDecoder: JD.Decoder<UrlParams>,
+  handler: PublicHandler<UrlParams, ErrorCode, Payload>,
+  req: Express.Request,
+  res: Express.Response<ResponseJson<ErrorCode, Payload>>,
+): Promise<void> {
+  const paramsResult = decodeUrlParams(req, urlDecoder)
+  return runPublicHandler_(paramsResult, handler, req, res)
+}
+
+async function runPublicHandler_<ErrorCode, Params, Payload>(
+  paramsResult: Either<Annotation, Params>,
+  handler: PublicHandler<Params, ErrorCode, Payload>,
+  req: Express.Request,
+  res: Express.Response<ResponseJson<ErrorCode, Payload>>,
+): Promise<void> {
   if (paramsResult._t === "Left")
     return internalErr500(
       res,
       paramsResult.error,
       decoderErrorMessage(req.query, paramsResult.error),
     )
-  const params = paramsResult.value
 
-  return handler(params)
+  return handler(paramsResult.value)
     .then((result) => {
       return result._t === "Right"
         ? ok200(res, result.value)
         : err400(res, result.error)
     })
     .catch((error) => {
-      // Uncaught exception from handler
-      // will be treated as 500 internal errors
       return internalErr500(
         res,
         error,
@@ -151,45 +345,54 @@ async function runAuthHandler<UrlParams, RequestBody, ErrorCode, Payload>(
   req: Express.Request,
   res: Express.Response<AuthResponseJson<ErrorCode, Payload>>,
 ): Promise<void> {
-  try {
-    const jwtPayload = await verifyToken(req)
-    if (jwtPayload._t === "Left") return unauthorised(res, jwtPayload.error)
+  const paramsResult = decodeParams(req, urlDecoder, bodyDecoder)
+  return runAuthHandler_(paramsResult, handler, req, res)
+}
 
-    const { userID } = jwtPayload.value
-    const user = await UserDb.getByID(userID)
-    if (user == null)
-      return unauthorised(res, `Invalid user with id ${userID.unwrap()}`)
+async function runAuthNoneBodyHandler<UrlParams, ErrorCode, Payload>(
+  urlDecoder: JD.Decoder<UrlParams>,
+  handler: AuthHandler<UrlParams, ErrorCode, Payload>,
+  req: Express.Request,
+  res: Express.Response<AuthResponseJson<ErrorCode, Payload>>,
+): Promise<void> {
+  const paramsResult = decodeUrlParams(req, urlDecoder)
+  return runAuthHandler_(paramsResult, handler, req, res)
+}
 
-    const paramsResult = decodeParams(req, urlDecoder, bodyDecoder)
-    if (paramsResult._t === "Left")
-      return internalErr500(
-        res,
-        paramsResult.error,
-        decoderErrorMessage(req.query, paramsResult.error),
-      )
+async function runAuthHandler_<Params, ErrorCode, Payload>(
+  paramsResult: Either<Annotation, Params>,
+  handler: AuthHandler<Params, ErrorCode, Payload>,
+  req: Express.Request,
+  res: Express.Response<AuthResponseJson<ErrorCode, Payload>>,
+): Promise<void> {
+  const jwtPayload = await verifyToken(req)
+  if (jwtPayload._t === "Left") return unauthorised(res, jwtPayload.error)
 
-    return handler(user, paramsResult.value)
-      .then((result) =>
-        result._t === "Right"
-          ? ok200(res, result.value)
-          : err400(res, result.error),
-      )
-      .catch((error) =>
-        // Uncaught exception from handler
-        // will be treated as 500 internal errors
-        internalErr500(
-          res,
-          error,
-          internalErrMessage("Handler Uncaught Exception", req.query, error),
-        ),
-      )
-  } catch (error) {
+  if (paramsResult._t === "Left")
     return internalErr500(
       res,
-      error,
-      internalErrMessage("Handler Uncaught Exception", req.query, error),
+      paramsResult.error,
+      decoderErrorMessage(req.query, paramsResult.error),
     )
-  }
+
+  const { userID } = jwtPayload.value
+  const user = await UserDb.getByID(userID).catch(() => null) // Catch to prevent DB throw
+  if (user == null)
+    return unauthorised(res, `Invalid user with id ${userID.unwrap()}`)
+
+  return handler(user, paramsResult.value)
+    .then((result) =>
+      result._t === "Right"
+        ? ok200(res, result.value)
+        : err400(res, result.error),
+    )
+    .catch((error) =>
+      internalErr500(
+        res,
+        error,
+        internalErrMessage("Handler Uncaught Exception", req.query, error),
+      ),
+    )
 }
 
 function decodeParams<UrlParams, RequestBody>(
@@ -197,9 +400,6 @@ function decodeParams<UrlParams, RequestBody>(
   urlDecoder: JD.Decoder<UrlParams>,
   bodyDecoder: JD.Decoder<RequestBody>,
 ): Either<Annotation, UrlParams & RequestBody> {
-  // Decoder errors are treated as 500 internal errors
-  // Because our typescript should guarantee this
-  // and it should not happen in production
   const urlResult = fromDecodeResult(
     urlDecoder.decode({ ...req.query, ...req.params }),
   )
@@ -209,6 +409,18 @@ function decodeParams<UrlParams, RequestBody>(
   if (bodyResult._t === "Left") return left(bodyResult.error)
 
   return right({ ...urlResult.value, ...bodyResult.value })
+}
+
+function decodeUrlParams<UrlParams>(
+  req: Express.Request,
+  urlDecoder: JD.Decoder<UrlParams>,
+): Either<Annotation, UrlParams> {
+  const urlResult = fromDecodeResult(
+    urlDecoder.decode({ ...req.query, ...req.params }),
+  )
+  if (urlResult._t === "Left") return left(urlResult.error)
+
+  return right(urlResult.value)
 }
 
 async function verifyToken(
