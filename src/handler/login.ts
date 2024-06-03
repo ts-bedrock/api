@@ -3,6 +3,7 @@ import { Either, left, right } from "../../../core/data/Either"
 import * as UserDb from "../database/user"
 import * as Hash from "../data/hash"
 import * as Jwt from "../data/jwt"
+import { toUser } from "../data/user"
 
 export default async function handler(
   params: API.BodyParams,
@@ -20,5 +21,5 @@ export default async function handler(
 
   const token = await Jwt.issue(userRow.id)
 
-  return right({ user: userRow, token: token.unwrap() })
+  return right({ user: toUser(userRow), token: token.unwrap() })
 }

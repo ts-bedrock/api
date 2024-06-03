@@ -1,4 +1,4 @@
-import handler from "../../src/handler/getUsers"
+import handler from "../../src/handler/users"
 import * as Hash from "../../src/data/hash"
 import { fromRight } from "../either"
 import { createUser } from "../fixture"
