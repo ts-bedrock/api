@@ -1,18 +1,14 @@
 import handler from "../../src/handler/users"
-import * as Hash from "../../src/data/hash"
 import { fromRight } from "../either"
 import { createUser } from "../fixture"
 import { fromJust } from "../maybe"
 import { createPositiveInt } from "../../../core/data/PositiveInt"
 
-describe("handler/getUsers", () => {
+describe("handler/users", () => {
   test("get users success", async () => {
-    const password = "123123"
-    const hashedPassword = await Hash.issue(password).then(fromJust)
-
-    const apple = await createUser("apple@gmail.com", { hashedPassword })
-    const banana = await createUser("banana@gmail.com", { hashedPassword })
-    const orange = await createUser("orange@gmail.com", { hashedPassword })
+    const apple = await createUser("apple@gmail.com")
+    const banana = await createUser("banana@gmail.com")
+    const orange = await createUser("orange@gmail.com")
 
     const [orange_, banana_, apple_] = await handler(apple, {
       limit: fromJust(createPositiveInt(10)),
