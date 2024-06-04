@@ -1,8 +1,8 @@
-import * as API from "../../../core/api/Users"
-import { Either, right } from "../../../core/data/Either"
-import { AuthUser } from "../data/handler"
-import { toUser } from "../data/user"
-import * as UserDb from "../database/user"
+import * as API from "../../../../core/api/User/List"
+import { Either, right } from "../../../../core/data/Either"
+import { AuthUser } from "../../data/handler"
+import { toUser } from "../../data/user"
+import * as UserDb from "../../database/user"
 
 export default async function handler(
   _currentUser: AuthUser,

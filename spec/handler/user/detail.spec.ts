@@ -1,10 +1,10 @@
-import handler from "../../src/handler/user"
-import { fromLeft, fromRight } from "../either"
-import { createUser } from "../fixture"
-import { fromJust } from "../maybe"
-import { createPositiveInt } from "../../../core/data/PositiveInt"
+import handler from "../../../src/handler/user/detail"
+import { fromLeft, fromRight } from "../../either"
+import { createUser } from "../../fixture"
+import { fromJust } from "../../maybe"
+import { createPositiveInt } from "../../../../core/data/PositiveInt"
 
-describe("handler/user", () => {
+describe("handler/user/detail", () => {
   test("get user success", async () => {
     const apple = await createUser("apple@gmail.com")
     const banana = await createUser("banana@gmail.com")
