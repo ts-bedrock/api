@@ -1,7 +1,7 @@
 import * as path from "path"
 import { promises } from "fs"
 import { FileMigrationProvider, Migrator } from "kysely"
-import db from "../src/database"
+import db from "../src/Database"
 
 const migrator = new Migrator({
   db,
