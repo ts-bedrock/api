@@ -47,6 +47,7 @@ function load(): Env | never {
   if (result._t === "Right") {
     return result.value
   } else {
+    // Cannot use Logger because of cycle dependencies
     console.error("Env is malformed.")
     throw new Error(JD.formatInline(result.error))
   }

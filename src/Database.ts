@@ -1,10 +1,18 @@
 import { Pool } from "pg"
 import { Kysely, PostgresDialect } from "kysely"
 import ENV from "./Env"
-import type { UserTable } from "./Database/User"
 
 type Schema = {
   user: UserTable
+}
+
+type UserTable = {
+  id: string
+  name: string
+  email: string
+  password: string
+  createdAt: Date
+  updatedAt: Date
 }
 
 const dialect = new PostgresDialect({

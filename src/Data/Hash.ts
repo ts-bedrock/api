@@ -1,20 +1,22 @@
 import * as bcrypt from "bcrypt"
 import { Maybe, nothing } from "../../../core/Data/Maybe"
+import { Opaque, jsonValueCreate } from "../../../core/Data/Opaque"
+import * as Logger from "./Logger"
 
-export async function issue(password: string): Promise<Maybe<string>> {
+const key: unique symbol = Symbol()
+export type Hash = Opaque<string, typeof key>
+
+export async function issue(s: string): Promise<Maybe<Hash>> {
   const saltRounds = 10 // We use auto-gen salt with saltRounds 10 as recommend
-  return bcrypt.hash(password, saltRounds).catch((error) => {
-    console.error(`bcrypt hash error: `, error)
-    return nothing()
-  })
+  return bcrypt
+    .hash(s, saltRounds)
+    .then((hash) => jsonValueCreate<string, typeof key>(key)(hash))
+    .catch((error) => {
+      Logger.error(`bcrypt issue error: ${error}`)
+      return nothing()
+    })
 }
 
-export async function verify(
-  password: string,
-  hashedPassword: string,
-): Promise<boolean> {
-  return bcrypt.compare(password, hashedPassword).catch((error) => {
-    console.error(`bcrypt check error: `, error)
-    return false
-  })
+export async function verify(s: string, hashedS: string): Promise<boolean> {
+  return bcrypt.compare(s, hashedS).catch(() => false)
 }

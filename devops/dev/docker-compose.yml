@@ -11,6 +11,9 @@ services:
     ports:
       - "5432:5432"
     restart: always
+    healthcheck:
+      # Password not required to test healthcheck https://www.postgresql.org/docs/current/app-pg-isready.html
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
 
   # Dev DB
   database-test:
@@ -22,3 +25,6 @@ services:
     ports:
       - "5433:5432"
     restart: always
+    healthcheck:
+      # Password not required to test healthcheck https://www.postgresql.org/docs/current/app-pg-isready.html
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]

@@ -1,7 +1,7 @@
 import * as API from "../../../core/Api/Profile"
 import { Either, right } from "../../../core/Data/Either"
 import { AuthUser } from "../Data/Handler"
-import { toUser } from "../Data/User"
+import { toUser } from "../Core/User"
 
 export default async function handler(
   currentUser: AuthUser,

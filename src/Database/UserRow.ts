@@ -1,71 +1,56 @@
-import { PositiveInt, positiveIntDecoder } from "../../../core/Data/PositiveInt"
-import {
-  NoneNegativeInt,
-  noneNegativeIntDecoder,
-} from "../../../core/Data/NoneNegativeInt"
+import { PositiveInt } from "../../../core/Data/Number/PositiveInt"
+import { Nat, natDecoder } from "../../../core/Data/Number/Nat"
 import { Either, left, right } from "../../../core/Data/Either"
-import { fromMaybe } from "../../../core/Data/Maybe"
 import db from "../Database"
 import * as JD from "decoders"
-import { Text100, text100Decoder } from "../../../core/Data/Text/Text100"
 import { Email, emailDecoder } from "../../../core/Data/User/Email"
-import {
-  numberFromStringDecoder,
-  stringNumberDecoder,
-} from "../../../core/Data/Decoder"
+import { stringNumberDecoder } from "../../../core/Data/Decoder"
 import {
   Timestamp,
-  createTimestamp,
+  createNow,
   timestampDecoder,
 } from "../../../core/Data/Timestamp"
-import { Generated } from "kysely"
-
-export type UserTable = {
-  id: Generated<number>
-  name: string
-  email: string
-  password: string
-  createdAt: number
-  updatedAt: number
-}
+import { Hash } from "../Data/Hash"
+import * as Logger from "../Data/Logger"
+import { UserID, createUserID, userIDDecoder } from "../../../core/App/User"
+import { Name, nameDecoder } from "../../../core/Data/User/Name"
 
 export type UserRow = {
-  id: PositiveInt
-  name: Text100
+  id: UserID
+  name: Name
   email: Email
   createdAt: Timestamp
   updatedAt: Timestamp
 }
 
 export type CreateParams = {
-  name: Text100
+  name: Name
   email: Email
-  hashedPassword: string
+  hashedPassword: Hash
 }
-export type CreateErrorCode = "DATA_ERROR" | "UNKNOWN_DB_ERROR"
+export type CreateErrorCode = "UNKNOWN_DB_ERROR"
 export async function create(
   params: CreateParams,
 ): Promise<Either<CreateErrorCode, UserRow>> {
   const { name, email, hashedPassword } = params
 
-  const now = fromMaybe(createTimestamp(Date.now()))
-  if (now == null) return left("DATA_ERROR")
-
+  const now = createNow()
   return db
     .insertInto("user")
     .values({
+      id: createUserID().unwrap(),
       name: name.unwrap(),
       email: email.unwrap(),
-      password: hashedPassword,
-      createdAt: now.unwrap(),
-      updatedAt: now.unwrap(),
+      password: hashedPassword.unwrap(),
+      createdAt: new Date(now.unwrap()),
+      updatedAt: new Date(now.unwrap()),
     })
     .returningAll()
     .executeTakeFirstOrThrow()
     .then(userRowDecoder.verify)
     .then(right)
     .catch((e) => {
-      console.error("#users.create error", e)
+      Logger.error(`#users.create error ${e}`)
       return left("UNKNOWN_DB_ERROR")
     })
 }
@@ -86,12 +71,12 @@ export async function getHashedPasswordByEmail(
           }).verify(r).password,
     )
     .catch((e) => {
-      console.error("#users.getHashedPasswordByEmail error", e)
+      Logger.error(`#users.getHashedPasswordByEmail error ${e}`)
       throw e
     })
 }
 
-export async function getByID(userID: PositiveInt): Promise<UserRow | null> {
+export async function getByID(userID: UserID): Promise<UserRow | null> {
   return db
     .selectFrom("user")
     .selectAll()
@@ -99,7 +84,7 @@ export async function getByID(userID: PositiveInt): Promise<UserRow | null> {
     .executeTakeFirst()
     .then((r) => (r == null ? null : userRowDecoder.verify(r)))
     .catch((e) => {
-      console.error("#users.getByID error", e)
+      Logger.error(`#users.getByID error ${e}`)
       throw e
     })
 }
@@ -112,34 +97,30 @@ export async function getByEmail(email: Email): Promise<UserRow | null> {
     .executeTakeFirst()
     .then((r) => (r == null ? null : userRowDecoder.verify(r)))
     .catch((e) => {
-      console.error("#users.getByEmail error", e)
+      Logger.error(`#users.getByEmail error ${e}`)
       throw e
     })
 }
 
 export async function pagination(
-  lastID: PositiveInt | null,
   limit: PositiveInt,
+  offset: Nat,
 ): Promise<UserRow[]> {
   return db
     .selectFrom("user")
     .selectAll()
-    .where((eb) => {
-      const conditons =
-        lastID != null ? [eb("user.id", "<", lastID.unwrap())] : []
-      return eb.and(conditons)
-    })
-    .orderBy("id", "desc")
+    .orderBy("createdAt", "desc")
     .limit(limit.unwrap())
+    .offset(offset.unwrap())
     .execute()
     .then((r) => JD.array(userRowDecoder).verify(r))
     .catch((e) => {
-      console.error("#users.pagination error", e)
+      Logger.error(`#users.pagination error ${e}`)
       throw e
     })
 }
 
-export async function count(): Promise<NoneNegativeInt> {
+export async function count(): Promise<Nat> {
   return db
     .selectFrom("user")
     .select([(b) => b.fn.count("user.id").as("total")])
@@ -147,21 +128,19 @@ export async function count(): Promise<NoneNegativeInt> {
     .then(
       (r) =>
         JD.object({
-          total: stringNumberDecoder.transform((v) =>
-            noneNegativeIntDecoder.verify(v),
-          ),
+          total: stringNumberDecoder.transform((v) => natDecoder.verify(v)),
         }).verify(r).total,
     )
     .catch((e) => {
-      console.error("#users.count error", e)
+      Logger.error(`#users.count error ${e}`)
       throw e
     })
 }
 
 const userRowDecoder: JD.Decoder<UserRow> = JD.object({
-  id: positiveIntDecoder,
-  name: text100Decoder,
+  id: userIDDecoder,
+  name: nameDecoder,
   email: emailDecoder,
-  createdAt: numberFromStringDecoder.transform(timestampDecoder.verify),
-  updatedAt: numberFromStringDecoder.transform(timestampDecoder.verify),
+  createdAt: JD.date.transform((v) => timestampDecoder.verify(v.getTime())),
+  updatedAt: JD.date.transform((v) => timestampDecoder.verify(v.getTime())),
 })

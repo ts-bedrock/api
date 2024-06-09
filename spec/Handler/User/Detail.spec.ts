@@ -1,10 +1,9 @@
 import handler from "../../../src/Handler/User/Detail"
 import { fromLeft, fromRight } from "../../Either"
 import { createUser } from "../../Fixture"
-import { fromJust } from "../../Maybe"
-import { createPositiveInt } from "../../../../core/Data/PositiveInt"
+import { createUserID } from "../../../../core/App/User"
 
-describe("handler/user/detail", () => {
+describe("/Handler/User/Detail", () => {
   test("get user success", async () => {
     const apple = await createUser("apple@gmail.com")
     const banana = await createUser("banana@gmail.com")
@@ -15,7 +14,7 @@ describe("handler/user/detail", () => {
 
   test("get user error", async () => {
     const apple = await createUser("apple@gmail.com")
-    const userID = fromJust(createPositiveInt(1000000))
+    const userID = createUserID()
 
     const error = await handler(apple, { userID }).then(fromLeft)
     expect(error).toEqual("USER_NOT_FOUND")

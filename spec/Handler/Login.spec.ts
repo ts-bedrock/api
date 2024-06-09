@@ -6,7 +6,7 @@ import { fromJust } from "../Maybe"
 import { createEmail } from "../../../core/Data/User/Email"
 import { createPassword } from "../../../core/Data/User/Password"
 
-describe("handler/login", () => {
+describe("Handler/Login", () => {
   test("login success", async () => {
     const email = fromJust(createEmail("user@gmail.com"))
     const password = fromJust(createPassword("123123"))

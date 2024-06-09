@@ -4,12 +4,14 @@ import { Kysely } from "kysely"
 export async function up(db: Kysely<unknown>): Promise<void> {
   await db.schema
     .createTable("user")
-    .addColumn("id", "serial", (col) => col.primaryKey())
+    .addColumn("id", "varchar(36)", (col) =>
+      col.notNull().unique().primaryKey(),
+    )
     .addColumn("name", "varchar(100)", (col) => col.notNull())
     .addColumn("email", "varchar(320)", (col) => col.notNull().unique())
     .addColumn("password", "varchar", (col) => col.notNull())
-    .addColumn("createdAt", "numeric", (col) => col.notNull())
-    .addColumn("updatedAt", "numeric", (col) => col.notNull())
+    .addColumn("createdAt", "timestamp", (col) => col.notNull())
+    .addColumn("updatedAt", "timestamp", (col) => col.notNull())
     .execute()
 }
 

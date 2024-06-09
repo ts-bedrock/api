@@ -1,12 +1,12 @@
 import * as JD from "decoders"
 import * as Express from "express"
+import { Readable } from "stream"
 import {
   Either,
   fromDecodeResult,
   left,
   right,
 } from "../../../core/Data/Either"
-import type { UserRow } from "../Database/User"
 import type {
   UrlRecord,
   ResponseJson,
@@ -20,13 +20,18 @@ import type {
   PostApi,
   PatchApi,
   PutApi,
+  AuthStreamApi,
+  AdminStreamApi,
+  AdminApi,
+  AdminNoneBodyApi,
+  AdminResponseJson,
 } from "../../../core/Data/Api"
 import { err400, internalErr500, ok200, unauthorised } from "./Response"
 import * as Jwt from "./Jwt"
-import * as UserDb from "../Database/User"
+import * as UserRow from "../Database/UserRow"
 import { Annotation } from "../../../core/Data/Decoder"
 
-export type AuthUser = UserRow
+export type AuthUser = UserRow.UserRow
 
 export function publicGetApi<
   Route extends string,
@@ -164,6 +169,102 @@ export function authPatchApi<
   return authApi(app, contract, handler)
 }
 
+export function authStreamApi<
+  Route extends string,
+  UrlParams extends UrlRecord<Route>,
+  RequestBody,
+  ErrorCode,
+  Payload,
+>(
+  app: Express.Express,
+  contract: AuthStreamApi<Route, UrlParams, RequestBody, ErrorCode, Payload>,
+  handler: AuthStreamHandler<UrlParams & RequestBody, ErrorCode, Payload>,
+): void {
+  return authStreamApi_(app, contract, handler)
+}
+
+export function adminGetApi<
+  Route extends string,
+  UrlParams extends UrlRecord<Route>,
+  ErrorCode,
+  Payload,
+>(
+  app: Express.Express,
+  contract: GetApi<Route, UrlParams, ErrorCode, Payload>,
+  handler: AdminHandler<UrlParams, ErrorCode, Payload>,
+): void {
+  return adminNoneBodyApi(app, contract, handler)
+}
+
+export function adminDeleteApi<
+  Route extends string,
+  UrlParams extends UrlRecord<Route>,
+  ErrorCode,
+  Payload,
+>(
+  app: Express.Express,
+  contract: DeleteApi<Route, UrlParams, ErrorCode, Payload>,
+  handler: AdminHandler<UrlParams, ErrorCode, Payload>,
+): void {
+  return adminNoneBodyApi(app, contract, handler)
+}
+
+export function adminPostApi<
+  Route extends string,
+  UrlParams extends UrlRecord<Route>,
+  RequestBody,
+  ErrorCode,
+  Payload,
+>(
+  app: Express.Express,
+  contract: PostApi<Route, UrlParams, RequestBody, ErrorCode, Payload>,
+  handler: AdminHandler<UrlParams & RequestBody, ErrorCode, Payload>,
+): void {
+  return adminApi(app, contract, handler)
+}
+
+export function adminPutApi<
+  Route extends string,
+  UrlParams extends UrlRecord<Route>,
+  RequestBody,
+  ErrorCode,
+  Payload,
+>(
+  app: Express.Express,
+  contract: PutApi<Route, UrlParams, RequestBody, ErrorCode, Payload>,
+  handler: AdminHandler<UrlParams & RequestBody, ErrorCode, Payload>,
+): void {
+  return adminApi(app, contract, handler)
+}
+
+export function adminPatchApi<
+  Route extends string,
+  UrlParams extends UrlRecord<Route>,
+  RequestBody,
+  ErrorCode,
+  Payload,
+>(
+  app: Express.Express,
+  contract: PatchApi<Route, UrlParams, RequestBody, ErrorCode, Payload>,
+  handler: AdminHandler<UrlParams & RequestBody, ErrorCode, Payload>,
+): void {
+  return adminApi(app, contract, handler)
+}
+
+export function adminStreamApi<
+  Route extends string,
+  UrlParams extends UrlRecord<Route>,
+  RequestBody,
+  ErrorCode,
+  Payload,
+>(
+  app: Express.Express,
+  contract: AdminStreamApi<Route, UrlParams, RequestBody, ErrorCode, Payload>,
+  handler: AdminStreamHandler<UrlParams & RequestBody, ErrorCode, Payload>,
+): void {
+  return adminStreamApi_(app, contract, handler)
+}
+
 // Internal
 
 /** Handler type is a "pure" function that takes any P as params
@@ -177,6 +278,23 @@ export type PublicHandler<P, E, T> = (params: P) => Promise<Either<E, T>>
 export type AuthHandler<P, E, T> = (
   user: AuthUser,
   params: P,
+) => Promise<Either<E, T>>
+
+export type AuthStreamHandler<P, E, T> = (
+  user: AuthUser,
+  params: P,
+  readableStream: Readable,
+) => Promise<Either<E, T>>
+
+export type AdminHandler<P, E, T> = (
+  user: AuthUser,
+  params: P,
+) => Promise<Either<E, T>>
+
+export type AdminStreamHandler<P, E, T> = (
+  user: AuthUser,
+  params: P,
+  readableStream: Readable,
 ) => Promise<Either<E, T>>
 
 /** Creates a public API endpoint */
@@ -289,6 +407,98 @@ function authNoneBodyApi<
   }
 }
 
+function authStreamApi_<
+  Route extends string,
+  UrlParams extends UrlRecord<Route>,
+  RequestBody,
+  ErrorCode,
+  Payload,
+>(
+  app: Express.Express,
+  contract: AuthStreamApi<Route, UrlParams, RequestBody, ErrorCode, Payload>,
+  handler: AuthStreamHandler<UrlParams & RequestBody, ErrorCode, Payload>,
+): void {
+  const { route, urlDecoder, bodyDecoder } = contract
+  const handlerRunner = catchCallback((req, res) => {
+    return runAuthStreamHandler(urlDecoder, bodyDecoder, handler, req, res)
+  })
+
+  app.post(removeQuery(route), handlerRunner)
+}
+
+/** Creates an admin API endpoint */
+function adminApi<
+  Route extends string,
+  UrlParams extends UrlRecord<Route>,
+  RequestBody,
+  ErrorCode,
+  Payload,
+>(
+  app: Express.Express,
+  contract: AdminApi<Route, UrlParams, RequestBody, ErrorCode, Payload>,
+  handler: AdminHandler<UrlParams & RequestBody, ErrorCode, Payload>,
+): void {
+  const { method, route, urlDecoder, bodyDecoder } = contract
+  const handlerRunner = catchCallback((req, res) => {
+    return runAdminHandler(urlDecoder, bodyDecoder, handler, req, res)
+  })
+
+  switch (method) {
+    case "POST":
+      app.post(removeQuery(route), handlerRunner)
+      break
+    case "PATCH":
+      app.patch(removeQuery(route), handlerRunner)
+      break
+    case "PUT":
+      app.put(removeQuery(route), handlerRunner)
+      break
+  }
+}
+
+function adminNoneBodyApi<
+  Route extends string,
+  UrlParams extends UrlRecord<Route>,
+  ErrorCode,
+  Payload,
+>(
+  app: Express.Express,
+  contract: AdminNoneBodyApi<Route, UrlParams, ErrorCode, Payload>,
+  handler: AdminHandler<UrlParams, ErrorCode, Payload>,
+): void {
+  const { method, route, urlDecoder } = contract
+  const handlerRunner = catchCallback((req, res) => {
+    return runAdminNoneBodyHandler(urlDecoder, handler, req, res)
+  })
+
+  switch (method) {
+    case "GET":
+      app.get(removeQuery(route), handlerRunner)
+      break
+    case "DELETE":
+      app.delete(removeQuery(route), handlerRunner)
+      break
+  }
+}
+
+function adminStreamApi_<
+  Route extends string,
+  UrlParams extends UrlRecord<Route>,
+  RequestBody,
+  ErrorCode,
+  Payload,
+>(
+  app: Express.Express,
+  contract: AdminStreamApi<Route, UrlParams, RequestBody, ErrorCode, Payload>,
+  handler: AdminStreamHandler<UrlParams & RequestBody, ErrorCode, Payload>,
+): void {
+  const { route, urlDecoder, bodyDecoder } = contract
+  const handlerRunner = catchCallback((req, res) => {
+    return runAdminStreamHandler(urlDecoder, bodyDecoder, handler, req, res)
+  })
+
+  app.post(removeQuery(route), handlerRunner)
+}
 async function runPublicHandler<UrlParams, RequestBody, ErrorCode, Payload>(
   urlDecoder: JD.Decoder<UrlParams>,
   bodyDecoder: JD.Decoder<RequestBody>,
@@ -346,7 +556,12 @@ async function runAuthHandler<UrlParams, RequestBody, ErrorCode, Payload>(
   res: Express.Response<AuthResponseJson<ErrorCode, Payload>>,
 ): Promise<void> {
   const paramsResult = decodeParams(req, urlDecoder, bodyDecoder)
-  return runAuthHandler_(paramsResult, handler, req, res)
+  return runAuthHandler_(
+    paramsResult,
+    { _t: "AuthHandler", fn: handler },
+    req,
+    res,
+  )
 }
 
 async function runAuthNoneBodyHandler<UrlParams, ErrorCode, Payload>(
@@ -356,12 +571,38 @@ async function runAuthNoneBodyHandler<UrlParams, ErrorCode, Payload>(
   res: Express.Response<AuthResponseJson<ErrorCode, Payload>>,
 ): Promise<void> {
   const paramsResult = decodeUrlParams(req, urlDecoder)
-  return runAuthHandler_(paramsResult, handler, req, res)
+  return runAuthHandler_(
+    paramsResult,
+    { _t: "AuthHandler", fn: handler },
+    req,
+    res,
+  )
+}
+
+async function runAuthStreamHandler<UrlParams, RequestBody, ErrorCode, Payload>(
+  urlDecoder: JD.Decoder<UrlParams>,
+  bodyDecoder: JD.Decoder<RequestBody>,
+  handler: AuthStreamHandler<UrlParams & RequestBody, ErrorCode, Payload>,
+  req: Express.Request,
+  res: Express.Response<AuthResponseJson<ErrorCode, Payload>>,
+): Promise<void> {
+  const paramsResult = decodeParams(req, urlDecoder, bodyDecoder)
+  return runAuthHandler_(
+    paramsResult,
+    { _t: "AuthStreamHandler", fn: handler },
+    req,
+    res,
+  )
 }
 
 async function runAuthHandler_<Params, ErrorCode, Payload>(
   paramsResult: Either<Annotation, Params>,
-  handler: AuthHandler<Params, ErrorCode, Payload>,
+  handler:
+    | { _t: "AuthHandler"; fn: AuthHandler<Params, ErrorCode, Payload> }
+    | {
+        _t: "AuthStreamHandler"
+        fn: AuthStreamHandler<Params, ErrorCode, Payload>
+      },
   req: Express.Request,
   res: Express.Response<AuthResponseJson<ErrorCode, Payload>>,
 ): Promise<void> {
@@ -376,11 +617,114 @@ async function runAuthHandler_<Params, ErrorCode, Payload>(
     )
 
   const { userID } = jwtPayload.value
-  const user = await UserDb.getByID(userID).catch(() => null) // Catch to prevent DB throw
+  const user = await UserRow.getByID(userID).catch(() => null) // Catch to prevent DB throw
   if (user == null)
     return unauthorised(res, `Invalid user with id ${userID.unwrap()}`)
 
-  return handler(user, paramsResult.value)
+  const handlerFn =
+    handler._t === "AuthHandler"
+      ? handler.fn(user, paramsResult.value)
+      : handler.fn(user, paramsResult.value, req)
+
+  return handlerFn
+    .then((result) =>
+      result._t === "Right"
+        ? ok200(res, result.value)
+        : err400(res, result.error),
+    )
+    .catch((error) =>
+      internalErr500(
+        res,
+        error,
+        internalErrMessage("Handler Uncaught Exception", req.query, error),
+      ),
+    )
+}
+
+async function runAdminHandler<UrlParams, RequestBody, ErrorCode, Payload>(
+  urlDecoder: JD.Decoder<UrlParams>,
+  bodyDecoder: JD.Decoder<RequestBody>,
+  handler: AdminHandler<UrlParams & RequestBody, ErrorCode, Payload>,
+  req: Express.Request,
+  res: Express.Response<AdminResponseJson<ErrorCode, Payload>>,
+): Promise<void> {
+  const paramsResult = decodeParams(req, urlDecoder, bodyDecoder)
+  return runAdminHandler_(
+    paramsResult,
+    { _t: "AdminHandler", fn: handler },
+    req,
+    res,
+  )
+}
+
+async function runAdminNoneBodyHandler<UrlParams, ErrorCode, Payload>(
+  urlDecoder: JD.Decoder<UrlParams>,
+  handler: AdminHandler<UrlParams, ErrorCode, Payload>,
+  req: Express.Request,
+  res: Express.Response<AdminResponseJson<ErrorCode, Payload>>,
+): Promise<void> {
+  const paramsResult = decodeUrlParams(req, urlDecoder)
+  return runAdminHandler_(
+    paramsResult,
+    { _t: "AdminHandler", fn: handler },
+    req,
+    res,
+  )
+}
+
+async function runAdminStreamHandler<
+  UrlParams,
+  RequestBody,
+  ErrorCode,
+  Payload,
+>(
+  urlDecoder: JD.Decoder<UrlParams>,
+  bodyDecoder: JD.Decoder<RequestBody>,
+  handler: AdminStreamHandler<UrlParams & RequestBody, ErrorCode, Payload>,
+  req: Express.Request,
+  res: Express.Response<AdminResponseJson<ErrorCode, Payload>>,
+): Promise<void> {
+  const paramsResult = decodeParams(req, urlDecoder, bodyDecoder)
+  return runAdminHandler_(
+    paramsResult,
+    { _t: "AdminStreamHandler", fn: handler },
+    req,
+    res,
+  )
+}
+
+async function runAdminHandler_<Params, ErrorCode, Payload>(
+  paramsResult: Either<Annotation, Params>,
+  handler:
+    | { _t: "AdminHandler"; fn: AdminHandler<Params, ErrorCode, Payload> }
+    | {
+        _t: "AdminStreamHandler"
+        fn: AdminStreamHandler<Params, ErrorCode, Payload>
+      },
+  req: Express.Request,
+  res: Express.Response<AdminResponseJson<ErrorCode, Payload>>,
+): Promise<void> {
+  const jwtPayload = await verifyToken(req)
+  if (jwtPayload._t === "Left") return unauthorised(res, jwtPayload.error)
+
+  if (paramsResult._t === "Left")
+    return internalErr500(
+      res,
+      paramsResult.error,
+      decoderErrorMessage(req.query, paramsResult.error),
+    )
+
+  const { userID } = jwtPayload.value
+  const user = await UserRow.getByID(userID).catch(() => null) // Catch to prevent DB throw
+  if (user == null)
+    return unauthorised(res, `Invalid admin with id ${userID.unwrap()}`)
+
+  const handlerFn =
+    handler._t === "AdminHandler"
+      ? handler.fn(user, paramsResult.value)
+      : handler.fn(user, paramsResult.value, req)
+
+  return handlerFn
     .then((result) =>
       result._t === "Right"
         ? ok200(res, result.value)

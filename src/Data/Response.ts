@@ -1,6 +1,7 @@
 import * as Express from "express"
 import { md5 } from "pure-md5"
 import { Ok200, Err400, InternalErr500 } from "../../../core/Data/Api"
+import * as Logger from "./Logger"
 
 export function ok200<D>(res: Express.Response<Ok200<D>>, data: D): void {
   res.status(200)
@@ -25,8 +26,8 @@ export function internalErr500(
   // Generate a unique id to send to user
   // so user can report this id for us to track the error
   const errorID = md5(errorMessage).slice(0, 9)
-  console.error(`${errorID}: ${errorMessage}`)
-  console.error(error)
+  Logger.error(`${errorID}: ${errorMessage}`)
+  Logger.error(error)
   res.status(500)
   res.json({ _t: "ServerError", errorID })
   return
@@ -38,7 +39,7 @@ export function unauthorised(
   res: Express.Response<Err400<"UNAUTHORISED">>,
   errorMessage: string,
 ): void {
-  console.error(`UNAUTHORISED: ${errorMessage}`)
+  Logger.error(`UNAUTHORISED: ${errorMessage}`)
   res.status(400)
   res.json({ _t: "Err", code: "UNAUTHORISED" })
   return
