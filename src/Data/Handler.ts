@@ -172,13 +172,12 @@ export function authPatchApi<
 export function authStreamApi<
   Route extends string,
   UrlParams extends UrlRecord<Route>,
-  RequestBody,
   ErrorCode,
   Payload,
 >(
   app: Express.Express,
-  contract: AuthStreamApi<Route, UrlParams, RequestBody, ErrorCode, Payload>,
-  handler: AuthStreamHandler<UrlParams & RequestBody, ErrorCode, Payload>,
+  contract: AuthStreamApi<Route, UrlParams, ErrorCode, Payload>,
+  handler: AuthStreamHandler<UrlParams, ErrorCode, Payload>,
 ): void {
   return authStreamApi_(app, contract, handler)
 }
@@ -254,13 +253,12 @@ export function adminPatchApi<
 export function adminStreamApi<
   Route extends string,
   UrlParams extends UrlRecord<Route>,
-  RequestBody,
   ErrorCode,
   Payload,
 >(
   app: Express.Express,
-  contract: AdminStreamApi<Route, UrlParams, RequestBody, ErrorCode, Payload>,
-  handler: AdminStreamHandler<UrlParams & RequestBody, ErrorCode, Payload>,
+  contract: AdminStreamApi<Route, UrlParams, ErrorCode, Payload>,
+  handler: AdminStreamHandler<UrlParams, ErrorCode, Payload>,
 ): void {
   return adminStreamApi_(app, contract, handler)
 }
@@ -410,17 +408,16 @@ function authNoneBodyApi<
 function authStreamApi_<
   Route extends string,
   UrlParams extends UrlRecord<Route>,
-  RequestBody,
   ErrorCode,
   Payload,
 >(
   app: Express.Express,
-  contract: AuthStreamApi<Route, UrlParams, RequestBody, ErrorCode, Payload>,
-  handler: AuthStreamHandler<UrlParams & RequestBody, ErrorCode, Payload>,
+  contract: AuthStreamApi<Route, UrlParams, ErrorCode, Payload>,
+  handler: AuthStreamHandler<UrlParams, ErrorCode, Payload>,
 ): void {
-  const { route, urlDecoder, bodyDecoder } = contract
+  const { route, urlDecoder } = contract
   const handlerRunner = catchCallback((req, res) => {
-    return runAuthStreamHandler(urlDecoder, bodyDecoder, handler, req, res)
+    return runAuthStreamHandler(urlDecoder, handler, req, res)
   })
 
   app.post(removeQuery(route), handlerRunner)
@@ -484,17 +481,16 @@ function adminNoneBodyApi<
 function adminStreamApi_<
   Route extends string,
   UrlParams extends UrlRecord<Route>,
-  RequestBody,
   ErrorCode,
   Payload,
 >(
   app: Express.Express,
-  contract: AdminStreamApi<Route, UrlParams, RequestBody, ErrorCode, Payload>,
-  handler: AdminStreamHandler<UrlParams & RequestBody, ErrorCode, Payload>,
+  contract: AdminStreamApi<Route, UrlParams, ErrorCode, Payload>,
+  handler: AdminStreamHandler<UrlParams, ErrorCode, Payload>,
 ): void {
-  const { route, urlDecoder, bodyDecoder } = contract
+  const { route, urlDecoder } = contract
   const handlerRunner = catchCallback((req, res) => {
-    return runAdminStreamHandler(urlDecoder, bodyDecoder, handler, req, res)
+    return runAdminStreamHandler(urlDecoder, handler, req, res)
   })
 
   app.post(removeQuery(route), handlerRunner)
@@ -579,14 +575,13 @@ async function runAuthNoneBodyHandler<UrlParams, ErrorCode, Payload>(
   )
 }
 
-async function runAuthStreamHandler<UrlParams, RequestBody, ErrorCode, Payload>(
+async function runAuthStreamHandler<UrlParams, ErrorCode, Payload>(
   urlDecoder: JD.Decoder<UrlParams>,
-  bodyDecoder: JD.Decoder<RequestBody>,
-  handler: AuthStreamHandler<UrlParams & RequestBody, ErrorCode, Payload>,
+  handler: AuthStreamHandler<UrlParams, ErrorCode, Payload>,
   req: Express.Request,
   res: Express.Response<AuthResponseJson<ErrorCode, Payload>>,
 ): Promise<void> {
-  const paramsResult = decodeParams(req, urlDecoder, bodyDecoder)
+  const paramsResult = decodeUrlParams(req, urlDecoder)
   return runAuthHandler_(
     paramsResult,
     { _t: "AuthStreamHandler", fn: handler },
@@ -672,19 +667,13 @@ async function runAdminNoneBodyHandler<UrlParams, ErrorCode, Payload>(
   )
 }
 
-async function runAdminStreamHandler<
-  UrlParams,
-  RequestBody,
-  ErrorCode,
-  Payload,
->(
+async function runAdminStreamHandler<UrlParams, ErrorCode, Payload>(
   urlDecoder: JD.Decoder<UrlParams>,
-  bodyDecoder: JD.Decoder<RequestBody>,
-  handler: AdminStreamHandler<UrlParams & RequestBody, ErrorCode, Payload>,
+  handler: AdminStreamHandler<UrlParams, ErrorCode, Payload>,
   req: Express.Request,
   res: Express.Response<AdminResponseJson<ErrorCode, Payload>>,
 ): Promise<void> {
-  const paramsResult = decodeParams(req, urlDecoder, bodyDecoder)
+  const paramsResult = decodeUrlParams(req, urlDecoder)
   return runAdminHandler_(
     paramsResult,
     { _t: "AdminStreamHandler", fn: handler },
